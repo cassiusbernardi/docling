@@ -8,7 +8,8 @@ WORKDIR /app
 ENV GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
 ENV HF_HOME=/tmp/
 ENV TORCH_HOME=/tmp/
-ENV OMP_NUM_THREADS=4 # Para evitar congestionamento de threads em ambientes de contêiner
+# Para evitar congestionamento de threads em ambientes de contêiner
+ENV OMP_NUM_THREADS=4 
 
 # Instalar dependências de sistema necessárias (libgl, libglib, curl, wget, git, procps)
 # Adicione 'poetry' aqui também, pois o Docling usa-o para gerenciamento de dependências.
