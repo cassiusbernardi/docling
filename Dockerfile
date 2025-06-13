@@ -8,20 +8,25 @@ WORKDIR /app
 ENV GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
 ENV HF_HOME=/tmp/
 ENV TORCH_HOME=/tmp/
-# Para evitar congestionamento de threads em ambientes de contêiner
+# Para evitar congestionamento de threads em ambientes de contêiner.
 ENV OMP_NUM_THREADS=4 
 
 # Instalar dependências de sistema necessárias (libgl, libglib, curl, wget, git, procps)
-# Adicione 'poetry' aqui também, pois o Docling usa-o para gerenciamento de dependências.
-RUN apt-get update \
-    && apt-get install -y libgl1 libglib2.0-0 curl wget git procps poetry \
-    && rm -rf /var/lib/apt/lists/*
+# --no-install-recommends para instalar apenas o essencial e economizar espaço/memória
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libgl1 libglib2.0-0 curl wget git procps && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copiar os arquivos de definição de dependência do Docling (pyproject.toml, poetry.lock)
-# Isso deve estar na raiz do seu repositório Docling
-COPY pyproject.toml poetry.lock ./
+# Instalar poetry separadamente via pip. Isso é mais eficiente em Docker do que via apt-get.
+# É importante que seja antes de qualquer comando 'poetry run' ou 'poetry install'.
+RUN pip install poetry
 
-# Instalar as dependências Python usando poetry
+# Copiar APENAS o pyproject.toml para o diretório de trabalho.
+# O poetry install abaixo irá gerar o poetry.lock dentro do contêiner.
+COPY pyproject.toml ./
+
+# Instalar as dependências Python usando poetry.
+# Este comando AGORA VAI GERAR O poetry.lock dentro do contêiner.
 # --no-root: não instala o próprio pacote docling como um pacote editável
 # --no-dev: não instala dependências de desenvolvimento
 # --no-interaction --no-ansi: para evitar prompts interativos durante o build
@@ -43,11 +48,3 @@ EXPOSE 8000
 # --host 0.0.0.0 permite que o contêiner escute em todas as interfaces de rede
 # --port 8000 define a porta de escuta
 CMD ["poetry", "run", "uvicorn", "docling.app:app", "--host", "0.0.0.0", "--port", "8000"]
-
-# As linhas abaixo são comentários do Dockerfile original e não são mais necessárias
-# para o deploy da API, mas são úteis para entendimento:
-# On container shell:
-# > cd /root/
-# > python minimal.py
-# Running as `docker run -e DOCLING_ARTIFACTS_PATH=/root/.cache/docling/models` will use the
-# model weights included in the container image.
